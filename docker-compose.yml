@@ -1,0 +1,79 @@
+version: '3.7'
+
+volumes:
+  app:
+    driver: local
+  data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /mnt/data01/media
+  aria2_conf:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /mnt/data01/aria2/conf
+  aria2_config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /mnt/data01/aria2/config
+  aria2_download:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /mnt/data01/media/download
+
+networks:
+  hostnet:
+    external: true
+    name: host
+
+services:
+  elfinder:
+    image: ruediste/elfinder
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - 8097:80
+    volumes:
+      - data:/data 
+      - /etc/localtime:/etc/localtime:ro
+  aria2:
+    image: fanningert/aria2-with-ariang
+    environment:
+      PGID: 33
+      PUID: 33
+      TZ: Asia/Shanghai
+    ports:
+      - 6880:80
+      - 6800:6800
+    volumes:
+      - aria2_conf:/conf
+      - aria2_config:/config
+      - aria2_download:/download
+      - aria2_download:/finished
+      - /etc/localtime:/etc/localtime:ro
+  dlna:
+    image: vladgh/minidlna
+    networks:
+      - hostnet
+    environment:
+      MINIDLNA_MEDIA_DIR: /media/download
+      MINIDLNA_MEDIA_DIR_1: A,/media/audio
+      MINIDLNA_MEDIA_DIR_2: V,/media/video
+      MINIDLNA_MEDIA_DIR_3: P,/media/image
+      MINIDLNA_FRIENDLY_NAME: MiniDLNA
+      MINIDLNA_INOTIFY: "yes"
+      MINIDLNA_NOTIFY_INTERVAL: 3
+      TZ: Asia/Shanghai
+    deploy:
+      mode: replicated
+      replicas: 1
+    volumes:
+      - data:/media
+      - /etc/localtime:/etc/localtime:ro
